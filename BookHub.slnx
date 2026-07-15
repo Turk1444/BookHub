@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BookHub.Application/BookHub.Application.csproj" />
+  <Project Path="BookHub.DataAccess/BookHub.DataAccess.csproj" />
+  <Project Path="BookHub.Domain/BookHub.Domain.csproj" />
+  <Project Path="BookHub.UI/BookHub.UI.csproj" />
+</Solution>
