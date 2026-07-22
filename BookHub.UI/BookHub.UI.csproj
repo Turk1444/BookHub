@@ -7,4 +7,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BookHub.Application\BookHub.Application.csproj" />
+    <ProjectReference Include="..\BookHub.DataAccess\BookHub.DataAccess.csproj" />
+    <ProjectReference Include="..\BookHub.Domain\BookHub.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

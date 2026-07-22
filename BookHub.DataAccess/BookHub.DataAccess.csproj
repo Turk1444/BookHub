@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BookHub.Domain\BookHub.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
