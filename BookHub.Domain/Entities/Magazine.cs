@@ -6,12 +6,14 @@ namespace BookHub.Domain.Entities
 {
     public class Magazine : LibraryItem
     {
-        public string Author { get; set; }
+        public int IssueNumber { get; set; }
 
-        public Magazine(int id, string title, string genre, int totalCopies, string author)
-            : base(id, title, genre, totalCopies)
+        public Magazine() { }
+        public Magazine(int id, string title, string genre, int totalCopies, int issueNumber)
         {
-            Author = author;
+            Id = id; Title = title; Genre = genre;
+            TotalCopies = totalCopies; AvailableCopies = totalCopies;
+            IssueNumber = issueNumber;
         }
     }
 }

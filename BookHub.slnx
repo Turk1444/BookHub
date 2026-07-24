@@ -2,5 +2,6 @@
   <Project Path="BookHub.Application/BookHub.Application.csproj" />
   <Project Path="BookHub.DataAccess/BookHub.DataAccess.csproj" />
   <Project Path="BookHub.Domain/BookHub.Domain.csproj" />
+  <Project Path="BookHub.Tests/BookHub.Tests.csproj" Id="1ec69ad4-3215-45cf-abdd-09b486245361" />
   <Project Path="BookHub.UI/BookHub.UI.csproj" />
 </Solution>

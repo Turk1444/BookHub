@@ -6,12 +6,15 @@ namespace BookHub.Domain.Entities
 {
     public class EBook : LibraryItem
     {
-        public string Author { get; set; }
+        public double FileSizeMb { get; set; }
+        public string Format { get; set; } = "PDF";
 
-        public EBook(int id, string title, string genre, int totalCopies, string author)
-            : base(id, title, genre, totalCopies)
+        public EBook() { }
+        public EBook(int id, string title, string genre, double fileSizeMb, string format = "PDF")
         {
-            Author = author;
+            Id = id; Title = title; Genre = genre;
+            TotalCopies = 999; AvailableCopies = 999; 
+            FileSizeMb = fileSizeMb; Format = format;
         }
     }
 }

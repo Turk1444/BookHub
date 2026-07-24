@@ -16,21 +16,14 @@ namespace BookHub.Application.Services
             _users = users;
         }
 
-        public User? Login(string email, string password)
+        public User? Register(string fullName, string email, string rawPassword, UserRole role)
         {
-            var user = _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-            if (user == null) return null;
+            if (_users.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase)))
+                return null;
 
-            // BCrypt Verification
-            bool isValidPassword = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-            return isValidPassword ? user : null;
-        }
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(rawPassword);
 
-        public User Register(string fullName, string email, string plainPassword, UserRole role)
-        {
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plainPassword);
-
-            var user = new User
+            var newUser = new User
             {
                 Id = _users.Count + 1,
                 FullName = fullName,
@@ -39,8 +32,17 @@ namespace BookHub.Application.Services
                 Role = role
             };
 
-            _users.Add(user);
-            return user;
+            _users.Add(newUser);
+            return newUser;
+        }
+
+        public User? Login(string email, string rawPassword)
+        {
+            var user = _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            if (user == null) return null;
+
+            bool isValidPassword = BCrypt.Net.BCrypt.Verify(rawPassword, user.PasswordHash);
+            return isValidPassword ? user : null;
         }
     }
 }

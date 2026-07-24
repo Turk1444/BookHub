@@ -7,33 +7,27 @@ namespace BookHub.Domain.Entities
     public class LibraryItem
     {
         public int Id { get; set; }
-        public string Title { get; set; }
-        public string Genre { get; set; }
-        public int TotalCopies { get; private set; }
-        public int AvailableCopies { get; private set; }
+        public string Title { get; set; } = string.Empty;
+        public string Genre { get; set; } = string.Empty;
+        public int TotalCopies { get; set; }
+        public int AvailableCopies { get; set; }
+        public int BorrowCount { get; set; } = 0;
 
-        protected LibraryItem(int id, string title, string genre, int totalCopies)
+        public virtual bool BorrowItem()
         {
-            Id = id;
-            Title = title;
-            Genre = genre;
-            TotalCopies = totalCopies;
-            AvailableCopies = totalCopies;
+            if (AvailableCopies > 0)
+            {
+                AvailableCopies--;
+                BorrowCount++;
+                return true;
+            }
+            return false;
         }
 
-        public bool BorrowItem()
-        {
-            if (AvailableCopies <= 0) return false;
-            AvailableCopies--;
-            return true;
-        }
-
-        public void ReturnItem()
+        public virtual void ReturnItem()
         {
             if (AvailableCopies < TotalCopies)
-            {
                 AvailableCopies++;
-            }
-        }   
+        }
     }    
 }

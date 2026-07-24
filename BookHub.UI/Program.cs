@@ -1,72 +1,123 @@
 using BookHub.Application.Services;
-using System.Collections.Generic;
 using BookHub.Domain.Entities;
 using System;
 using BookHub.DataAccess.Models;
+using System.Collections.Generic;
+using BookHub.DataAccess;
+using EmailService = BookHub.Application.Services.EmailService;
 
+
+
+//customer:
+//
+// Email: user@bookhub.ge
+// Password: User123!
+//
+// Admin:
+//
+// Email: admin@bookhub.ge
+// Password : Admin123!
 namespace BookHub.UI
 {
-    internal static class Program
+    class Program
     {
-        private const string BooksFilePath = "books_data.json";
+        private const string ItemsFilePath = "items_data.json";
         private const string UsersFilePath = "users_data.json";
+        private const string RecordsFilePath = "records_data.json";
 
         static void Main(string[] args)
         {
             LoggerService logger = new LoggerService();
-            logger.Log("INFO", "BookHub application starting up.");
+            EmailService emailService = new EmailService();
 
-            List<Book> books = DataStorage.LoadData<Book>(BooksFilePath);
-            if (books.Count == 0)
+
+            List<LibraryItem> items = DataStorage.LoadData<LibraryItem>(ItemsFilePath);
+            if (items.Count == 0)
             {
-                books.Add(new Book(1, "The Hobbit", "Fantasy", 3, "J.R.R. Tolkien"));
-                books.Add(new Book(2, "Clean Code", "Tech", 2, "Robert C. Martin"));
-                DataStorage.SaveData(BooksFilePath, books);
+                items.AddRange(new List<LibraryItem>
+                {
+                    //Books
+                    new Book(1, "The Hobbit", "Fantasy", 3, "J.R.R. Tolkien"),
+                    new Book(2, "Clean Code", "Tech", 2, "Robert C. Martin"),
+                    new Book(3, "Design Patterns", "Tech", 4, "Erich Gamma"),
+                    new Book(4, "1984", "Dystopian", 5, "George Orwell"),
+                    new Book(5, "To Kill a Mockingbird", "Classic", 2, "Harper Lee"),
+                    new Book(6, "The Pragmatic Programmer", "Tech", 3, "Andrew Hunt"),
+                    new Book(7, "Dune", "Sci-Fi", 4, "Frank Herbert"),
+                    new Book(8, "Foundation", "Sci-Fi", 3, "Isaac Asimov"),
+                    new Book(9, "Sapiens", "History", 5, "Yuval Noah Harari"),
+                    new Book(10, "Atomic Habits", "Self-Help", 6, "James Clear"),
+                    
+                    // Magazines
+                    new Magazine(11, "National Geographic", "Science", 5, 202407),
+                    new Magazine(12, "TIME Magazine", "News", 3, 1042),
+                    new Magazine(13, "Wired", "Tech", 4, 301),
+                    new Magazine(14, "Forbes", "Business", 2, 88),
+                    new Magazine(15, "The Economist", "Finance", 3, 9500),
+                    new Magazine(16, "Scientific American", "Science", 4, 412),
+                    new Magazine(17, "Harvard Business Review", "Business", 2, 112),
+
+                    // EBooks
+                    new EBook(18, "C# 12 In a Nutshell", "Tech", 12.5, "PDF"),
+                    new EBook(19, "Pro ASP.NET Core", "Tech", 15.2, "EPUB"),
+                    new EBook(20, "Domain-Driven Design", "Tech", 8.4, "PDF"),
+                    new EBook(21, "The Martian", "Sci-Fi", 3.2, "EPUB"),
+                    new EBook(22, "Steve Jobs Biography", "Biography", 10.1, "PDF"),
+                    new EBook(23, "Clean Architecture", "Tech", 7.5, "PDF"),
+                    new EBook(24, "Microservices Patterns", "Tech", 9.8, "EPUB"),
+                    new EBook(25, "Thinking in Systems", "Education", 4.5, "PDF")
+                });
+                DataStorage.SaveData(ItemsFilePath, items);
             }
 
             List<User> users = DataStorage.LoadData<User>(UsersFilePath);
-            AuthService authService = new AuthService(users);
+            List<BorrowRecord> records = DataStorage.LoadData<BorrowRecord>(RecordsFilePath);
 
+           
+            if (records.Count == 0)
+            {
+                records.Add(new BorrowRecord
+                {
+                    Id = 1,
+                    ItemId = 1,
+                    ItemTitle = "The Hobbit",
+                    UserEmail = "user@bookhub.ge",
+                    BorrowDate = DateTime.Now.AddDays(-20),
+                    DueDate = DateTime.Now.AddDays(-6), 
+                    IsReturned = false
+                });
+                DataStorage.SaveData(RecordsFilePath, records);
+            }
+
+            AuthService authService = new AuthService(users);
             if (users.Count == 0)
             {
-                authService.Register("System Admin", "admin@bookhub.ge", "AdminPass123!", UserRole.Admin);
-                authService.Register("John Doe", "user@bookhub.ge", "UserPass123!", UserRole.Customer);
+                authService.Register("System Admin", "admin@bookhub.ge", "Admin123!", UserRole.Admin);
+                authService.Register("John Doe", "user@bookhub.ge", "User123!", UserRole.Customer);
+                authService.Register("Saba", "saba@gmail.com", "123", UserRole.Customer);
                 DataStorage.SaveData(UsersFilePath, users);
             }
 
-            LibraryService libraryService = new LibraryService(books);
+            LibraryService libraryService = new LibraryService(items, records);
 
             User? loggedInUser = null;
             while (loggedInUser == null)
             {
                 Console.Clear();
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("=================================");
-                Console.WriteLine("    BOOKHUB SYSTEM - LOGIN      ");
-                Console.WriteLine("=================================");
+                Console.WriteLine("=========================================");
+                Console.WriteLine("     BOOKHUB MANAGEMENT SYSTEM           ");
+                Console.WriteLine("=========================================");
                 Console.ResetColor();
 
                 Console.Write("Email: ");
                 string email = Console.ReadLine()?.Trim() ?? "";
-
                 Console.Write("Password: ");
                 string password = Console.ReadLine() ?? "";
 
-                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("\nError: Email and password cannot be empty.");
-                    Console.ResetColor();
-                    Console.WriteLine("Press Enter to try again...");
-                    Console.ReadLine();
-                    continue;
-                }
-
                 loggedInUser = authService.Login(email, password);
-
                 if (loggedInUser == null)
                 {
-                    logger.Log("WARN", $"Failed login attempt for: {email}");
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("\nInvalid credentials! Press Enter to try again.");
                     Console.ResetColor();
@@ -74,181 +125,327 @@ namespace BookHub.UI
                 }
             }
 
-            logger.Log("INFO", $"User {loggedInUser.Email} ({loggedInUser.Role}) logged in.");
-
             bool running = true;
             while (running)
             {
                 Console.Clear();
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("=================================================");
-                Console.WriteLine($"  BOOKHUB - Welcome, {loggedInUser.FullName} [{loggedInUser.Role}]");
-                Console.WriteLine("=================================================");
+                Console.WriteLine("╔═══════════════════════════════════════════════╗");
+                Console.WriteLine("║          BOOKHUB LIBRARY MANAGEMENT           ║");
+                Console.WriteLine("╚═══════════════════════════════════════════════╝");
                 Console.ResetColor();
 
-                Console.WriteLine("1. View All Authors");
-                Console.WriteLine("2. Search Books by Genre");
-                Console.WriteLine("3. Borrow a Book");
-                Console.WriteLine("4. Return a Book");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"[USER] Welcome, {loggedInUser.FullName}");
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine($"[ROLE] {loggedInUser.Role}");
+                Console.ResetColor();
+                Console.WriteLine();
+
+                // Menu options with colors
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("1. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Browse All Items (10 Items Catalog)");
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("2. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("LINQ Search (Author / Genre)");
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("3. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("LINQ Query: Top 5 Borrowed Items");
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("4. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Check My Overdue Items & Fees");
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("5. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Borrow an Item");
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("6. ");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Return a Borrowed Item");
 
                 if (loggedInUser.Role == UserRole.Admin)
                 {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("5. [ADMIN] Add New Book");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Write("7. ");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("[ADMIN] LINQ Overdue List & Send SMTP Reminders");
                     Console.ResetColor();
                 }
 
-                Console.WriteLine("6. Exit & Save");
-                Console.Write("\nSelect option: ");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("8. ");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Exit & Save");
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("\n[OPTION] Select option: ");
+                Console.ResetColor();
                 string choice = Console.ReadLine()?.Trim() ?? "";
 
-                try
+                switch (choice)
                 {
-                    switch (choice)
-                    {
-                        case "1":
-                            Console.WriteLine("\n--- Authors in Library ---");
-                            foreach (var author in libraryService.GetAllAuthors())
+                    case "1":
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine("\n--- CATALOG ---");
+                        Console.ResetColor();
+                        foreach (var item in libraryService.GetAllItems())
+                        {
+                            string detail = item is Book b ? $"By {b.Author}" : (item is Magazine m ? $"Issue #{m.IssueNumber}" : "[E-BOOK] Digital");
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write($"[{item.Id}]");
+                            Console.ForegroundColor = ConsoleColor.White;
+                            Console.Write($" [{item.GetType().Name}] ");
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write($"{item.Title} ");
+                            Console.ForegroundColor = ConsoleColor.Magenta;
+                            Console.Write($"- {item.Genre} ");
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.Write($"({detail}) ");
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine($"- Available: {item.AvailableCopies}");
+                        }
+                        Console.ResetColor();
+                        break;
+
+                    case "2":
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.Write("\nEnter Genre or Author keyword: ");
+                        Console.ResetColor();
+                        string keyword = Console.ReadLine()?.Trim() ?? "";
+                        var searchResults = libraryService.SearchByAuthorOrGenre(keyword);
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"\n[LINQ] Found {searchResults.Count} matching item(s):");
+                        Console.ResetColor();
+                        foreach (var res in searchResults)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write("  > ");
+                            Console.ForegroundColor = ConsoleColor.White;
+                            Console.Write($"{res.Title} ");
+                            Console.ForegroundColor = ConsoleColor.Magenta;
+                            Console.WriteLine($"({res.Genre})");
+                        }
+                        Console.ResetColor();
+                        break;
+
+                    case "3":
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("\n[LINQ] Top Most Borrowed Items:");
+                        Console.ResetColor();
+                        foreach (var top in libraryService.GetTopBooks(5))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write("  * ");
+                            Console.ForegroundColor = ConsoleColor.White;
+                            Console.Write($"{top.Title} - ");
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.WriteLine($"Borrowed {top.BorrowCount} time(s)");
+                        }
+                        Console.ResetColor();
+                        break;
+
+                    case "4":
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine("\n--- YOUR OVERDUE RECORDS & FEES ---");
+                        Console.ResetColor();
+                        var myOverdues = records.Where(r => r.UserEmail == loggedInUser.Email && !r.IsReturned).ToList();
+                        if (!myOverdues.Any())
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[OK] You have no overdue items!");
+                            Console.ResetColor();
+                        }
+                        else
+                        {
+                            foreach (var rec in myOverdues)
                             {
-                                Console.WriteLine($" • {author}");
+                                decimal fee = rec.CalculateOverdueFee();
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.Write("[ALERT] Item: ");
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.Write($"{rec.ItemTitle} | ");
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.Write($"Due: {rec.DueDate:yyyy-MM-dd} | ");
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Fee: ${fee:F2}");
                             }
-                            break;
+                        }
+                        Console.ResetColor();
+                        break;
 
-                        case "2":
-                            Console.Write("\nEnter Genre: ");
-                            string genre = Console.ReadLine()?.Trim() ?? "";
+                    case "5":
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine("\n--- BORROW AN ITEM ---");
+                        Console.ResetColor();
+                        Console.WriteLine("First, view available items:");
+                        foreach (var item in libraryService.GetAllItems().Where(i => i.AvailableCopies > 0))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.Write($"[{item.Id}]");
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write($" {item.Title} ");
+                            Console.ForegroundColor = ConsoleColor.Gray;
+                            Console.WriteLine($"({item.AvailableCopies} available)");
+                        }
+                        Console.ResetColor();
 
-                            if (string.IsNullOrWhiteSpace(genre))
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.Write("\nEnter Item ID to borrow: ");
+                        Console.ResetColor();
+
+                        if (int.TryParse(Console.ReadLine()?.Trim(), out int borrowId))
+                        {
+                            var itemToBorrow = libraryService.FindById(borrowId);
+                            if (itemToBorrow != null)
                             {
-                                Console.WriteLine("Genre search cannot be empty.");
-                                break;
-                            }
-
-                            var results = libraryService.FilterByGenre(genre);
-                            Console.WriteLine($"\nFound {results.Count} item(s):");
-                            foreach (var b in results)
-                            {
-                                Console.WriteLine($" [{b.Id}] {b.Title} by {b.Author} ({b.AvailableCopies}/{b.TotalCopies} available)");
-                            }
-                            break;
-
-                        case "3":
-                            Console.Write("\nEnter Book ID to borrow: ");
-                            if (int.TryParse(Console.ReadLine()?.Trim(), out int borrowId))
-                            {
-                                var bookToBorrow = libraryService.FindById(borrowId);
-                                if (bookToBorrow != null)
+                                if (libraryService.BorrowItem(borrowId, loggedInUser.Email, itemToBorrow.Title))
                                 {
-                                    if (bookToBorrow.BorrowItem())
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Green;
-                                        Console.WriteLine($"Successfully borrowed '{bookToBorrow.Title}'.");
-                                        logger.Log("INFO", $"{loggedInUser.Email} borrowed book ID {borrowId}");
-                                    }
-                                    else
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Yellow;
-                                        Console.WriteLine("No copies available.");
-                                    }
+                                    Console.ForegroundColor = ConsoleColor.Green;
+                                    Console.WriteLine($"[SUCCESS] You borrowed '{itemToBorrow.Title}' successfully!");
+                                    Console.WriteLine($"[INFO] Due Date: {DateTime.Now.AddDays(14):yyyy-MM-dd}");
+                                    logger.Log("INFO", $"{loggedInUser.Email} borrowed item ID {borrowId} - {itemToBorrow.Title}");
                                 }
                                 else
                                 {
                                     Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine("Book ID not found.");
+                                    Console.WriteLine("[ERROR] No copies available or invalid item.");
                                 }
                             }
                             else
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("Invalid ID number format.");
+                                Console.WriteLine("[ERROR] Item not found.");
+                            }
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("[ERROR] Invalid ID format.");
+                        }
+                        Console.ResetColor();
+                        break;
+
+                    case "6":
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine("\n--- RETURN A BORROWED ITEM ---");
+                        Console.ResetColor();
+                        var myBorrowedItems = libraryService.GetUserBorrowedItems(loggedInUser.Email);
+
+                        if (!myBorrowedItems.Any())
+                        {
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.WriteLine("[INFO] You have no borrowed items.");
+                            Console.ResetColor();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Your borrowed items:");
+                            foreach (var borrowed in myBorrowedItems)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.Write($"[{borrowed.ItemId}] ");
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.Write($"{borrowed.ItemTitle} - ");
+                                Console.ForegroundColor = ConsoleColor.Magenta;
+                                Console.WriteLine($"Due: {borrowed.DueDate:yyyy-MM-dd}");
                             }
                             Console.ResetColor();
-                            break;
 
-                        case "4":
-                            Console.Write("\nEnter Book ID to return: ");
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.Write("\nEnter Item ID to return: ");
+                            Console.ResetColor();
+
                             if (int.TryParse(Console.ReadLine()?.Trim(), out int returnId))
                             {
-                                var bookToReturn = libraryService.FindById(returnId);
-                                if (bookToReturn != null)
+                                if (libraryService.ReturnItem(returnId, loggedInUser.Email))
                                 {
-                                    bookToReturn.ReturnItem();
+                                    var returnedItem = libraryService.FindById(returnId);
                                     Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.WriteLine($"Successfully returned '{bookToReturn.Title}'.");
-                                    logger.Log("INFO", $"{loggedInUser.Email} returned book ID {returnId}");
+                                    Console.WriteLine($"[SUCCESS] You returned '{returnedItem?.Title}' successfully!");
+                                    logger.Log("INFO", $"{loggedInUser.Email} returned item ID {returnId}");
                                 }
                                 else
                                 {
                                     Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine("Book ID not found.");
+                                    Console.WriteLine("[ERROR] Could not return item. Not found or already returned.");
                                 }
                             }
                             else
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("Invalid ID number format.");
+                                Console.WriteLine("[ERROR] Invalid ID format.");
                             }
                             Console.ResetColor();
-                            break;
+                        }
+                        break;
 
-                        case "5":
-                            if (loggedInUser.Role != UserRole.Admin)
-                            {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("Access Denied: Admin privileges required.");
-                                Console.ResetColor();
-                                break;
-                            }
-
-                            Console.Write("Enter Title: ");
-                            string title = Console.ReadLine()?.Trim() ?? "";
-                            Console.Write("Enter Author: ");
-                            string authorName = Console.ReadLine()?.Trim() ?? "";
-                            Console.Write("Enter Genre: ");
-                            string bookGenre = Console.ReadLine()?.Trim() ?? "";
-                            Console.Write("Enter Quantity: ");
-                            int.TryParse(Console.ReadLine()?.Trim(), out int qty);
-
-                            if (!string.IsNullOrEmpty(title) && qty > 0)
-                            {
-                                books.Add(new Book(books.Count + 1, title, bookGenre, qty, authorName));
-                                Console.ForegroundColor = ConsoleColor.Green;
-                                Console.WriteLine($"Book '{title}' added successfully.");
-                                logger.Log("INFO", $"Admin added book '{title}'");
-                            }
-                            else
-                            {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("Invalid input. Book creation canceled.");
-                            }
-                            Console.ResetColor();
-                            break;
-
-                        case "6":
-                            running = false;
-                            DataStorage.SaveData(BooksFilePath, books);
-                            DataStorage.SaveData(UsersFilePath, users);
-                            logger.Log("INFO", "Data saved. Application exited cleanly.");
-
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine("\nAll changes saved. Goodbye!");
-                            Console.ResetColor();
-                            break;
-
-                        default:
+                    case "7":
+                        if (loggedInUser.Role != UserRole.Admin) 
+                        {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("Invalid selection. Try again.");
+                            Console.WriteLine("[ERROR] Access Denied: Admin privileges required.");
                             Console.ResetColor();
                             break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Log("ERROR", $"Execution error: {ex.Message}");
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"System Error: {ex.Message}");
-                    Console.ResetColor();
+                        }
+
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\n[ADMIN] Overdue Items via LINQ & SMTP Notifications:");
+                        Console.ResetColor();
+                        var overdues = libraryService.GetOverdueRecords();
+                        if (overdues.Count == 0)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[OK] No overdue items found!");
+                            Console.ResetColor();
+                        }
+                        else
+                        {
+                            foreach (var o in overdues)
+                            {
+                                decimal fee = o.CalculateOverdueFee();
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.Write($"[OVERDUE] ");
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.Write($"{o.UserEmail} - ");
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.Write($"Item: '{o.ItemTitle}' | ");
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Fee: ${fee:F2}");
+                                Console.ForegroundColor = ConsoleColor.Cyan;
+                                Console.WriteLine("   [SENDING] Email reminder...");
+                                Console.ResetColor();
+                                emailService.SendOverdueReminder(o.UserEmail, "Valued Member", o.ItemTitle, fee);
+                            }
+                        }
+                        break;
+
+                    case "8":
+                        running = false;
+                        DataStorage.SaveData(ItemsFilePath, items);
+                        DataStorage.SaveData(UsersFilePath, users);
+                        DataStorage.SaveData(RecordsFilePath, records);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\n[OK] Data saved safely.");
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("[EXIT] Goodbye!");
+                        Console.ResetColor();
+                        break;
+
+                    default:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\n[ERROR] Invalid option. Please try again.");
+                        Console.ResetColor();
+                        break;
                 }
 
                 if (running)
